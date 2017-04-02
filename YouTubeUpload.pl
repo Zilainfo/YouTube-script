@@ -2,10 +2,11 @@ use strict;
 use warnings;
 use Data::Dumper;
 use LWP::UserAgent ();
-use DBI;
 use Source::PlaysTv;
+use POSIX;
 
-my $Playstv = PlaysTv->new( 'LeagueofLegends');
+my $directory =  '/usr/Video/';
+my $Playstv = PlaysTv->new( 'LeagueofLegends', $directory);
 
 get_paystv_video();
 
@@ -14,7 +15,14 @@ sub get_paystv_video {
 
   $Playstv->playstv_get_video_list();
 
+  my ($date) = strftime("%Y-%m-%d_%H:%M", localtime(time));
+
+
   $Playstv->paystv_get_video();
+
+  system("cd $directory && for f in ./*.ts; do echo ". '"file \'$f\'"'. " >> $date.txt; done");
+
+  $Playstv->{DBI}->disconnect;
 
   return 1;
 }

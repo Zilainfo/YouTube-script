@@ -3,20 +3,32 @@ package PlaysTv;
 use strict;
 use LWP::UserAgent ();
 use Data::Dumper;
+use DBI;
 
 my $ua = LWP::UserAgent->new;
 $ua->agent('Mozilla/5.0 (Windows NT 6.1; rv=>52.0) Gecko/20100101 Firefox/52.0');
 
+my $dbh = DBI->connect('DBI:mysql:youtube_uploed', 'root', '123',);
+# my $query = "SELECT * FROM mytable";
+
+#    my $mytable_output = $db->prepare($query);
+#    $mytable_output->execute;
+#    $mytable_output->finish;
+
+
 sub new {
-  my $class  = shift;
-  my $game   = shift;
+  my $class     = shift;
+  my $game      = shift;
+  my $directory = shift;
+
   my ($attr) = @_;
 
   my $self = {};
   bless($self, $class);
 
   $self->{GAME} = $game;
-
+  $self->{DBI}  = $dbh;
+  $self->{SAVE_DIRECTORY}  = $directory;
   # foreach my $extra_param (keys %{$attr}){
   #   $self->{$extra_param} = $attr->{$extra_param}
   # }
@@ -46,7 +58,7 @@ sub paystv_get_video {
   my $self = shift;
   my ($attr) = @_;
 
-  my @quality = ( '', '1080', '720', '480' );
+  my @quality = ( '', '720', '720', '480' );
   my $response_result = '';
   my $response = '';
 
@@ -64,10 +76,15 @@ sub paystv_get_video {
     }
 
     if ($response->is_success) {
-      # open(my $fh, '>', 'video.mp4');
+      open(my $fh, '>', "$self->{SAVE_DIRECTORY}$video_id.mp4");
+      print "Create file $video_id.mp4\n";
+      my $sth = $dbh->prepare("INSERT INTO video(vid,type, created) VALUES (?,?,?)");
+      $sth->execute( $video_id, 'playstv', 'NOW()');
       # delete $response->{_content};
-      # print $fh $response->decoded_content;
+      print $fh $response->decoded_content;
       # print Dumper($response);
+      close $fh;
+      system("ffmpeg -i $self->{SAVE_DIRECTORY}$video_id.mp4 -acodec copy -vcodec copy -vbsf h264_mp4toannexb -f mpegts $self->{SAVE_DIRECTORY}$video_id.ts");
     }
 
   }
@@ -75,5 +92,6 @@ sub paystv_get_video {
   return 1;
 }
 
+# $dbh->disconnect;
 
 1
