@@ -1,13 +1,20 @@
 use lib '../lib';
+
 use strict;
 use warnings;
 use Data::Dumper;
-use LWP::UserAgent ();
-use POSIX;
+use LWP::UserAgent;
 use Net::PlaysTv;
+use POSIX;
 
-my $directory =  '/usr/Video/';
-my $Playstv = Net::PlaysTv->new('LeagueofLegends', $directory);
+#************************************************
+# perl ./YouTubeUpload.pl
+#************************************************
+
+my $directory = get_input();
+$directory = '/usr/SocialMedia/Video/';
+
+my $Playstv = PlaysTv->new('LeagueofLegends', $directory);
 
 get_paystv_video();
 
@@ -18,18 +25,23 @@ sub get_paystv_video {
 
     my ($date) = strftime("%Y-%m-%d_%H:%M", localtime(time));
 
-    $Playstv->paystv_get_video();
+    $Playstv->paystv_get_video({ VIDEO_NUM => $ARGV[0], YOTUBE_VIDEO_NAME => $ARGV[1] });
 
-    system("cd $directory && for f in ./*.ts; do echo ". '"file \'$f\'"'. " >> $date.txt; done");
+    prepare_and_ulploed_youtube($Playstv->{VIDEOS}[0]);
 
     $Playstv->{DBI}->disconnect;
-
     return 1;
 }
 
-# my $db = DBI->connect('DBI:mysql:playstv', 'root', '123');
-# my $query = "SELECT * FROM mytable";
+sub prepare_and_ulploed_youtube {
+    my ($name) = @_;
 
-#    # my $mytable_output - $db->prepare($query);
-#    # $mytable_output->execute;
-#    # $mytable_output->finish;
+    system(
+        "youtube-upload --title='A.S. Mutterj' "
+            . $directory
+            . $name
+            . " --credentials-file=/usr/Video/ZGV --client-secrets=/usr/Downdloed/client_secret.json"
+    );
+
+    return 1;
+}
