@@ -6,12 +6,16 @@ use LWP::UserAgent ();
 use Data::Dumper;
 use DBI;
 use Net::Services::Ffmpeg;
+use Log::Tiny;
+
+my $log = Log::Tiny->new('../logs/local.log') or
+    die 'Could not log! (' . Log::Tiny->errstr . ')';
 
 my $ua = LWP::UserAgent->new;
 $ua->agent('Mozilla/5.0 (Windows NT 6.1; rv=>52.0) Gecko/20100101 Firefox/52.0');
 
-my $dbh = DBI->connect('DBI:mysql:youtube_uploed', 'root', '1234',);
-
+my $dbh = DBI->connect('DBI:mysql:playstv', 'root', '123',) or
+    die $log->ERROR('Cant connect to Date Base!');
 
 sub new {
     my $class = shift;
@@ -35,7 +39,8 @@ sub playstv_get_video_list {
     my $self = shift;
     my ($attr) = @_;
 
-    my $response = $ua->get("http://plays.tv/game/$self->{ITEM}?page=1");
+    my $response = $ua->get("http://plays.tv/game/$self->{ITEM}?page=1") or
+        $log->ERROR('Cant get Playlist');
 
     if ($response->is_success) {
         my @video = ();
@@ -72,7 +77,7 @@ sub paystv_get_video {
         while (!($response_result || $i == 3)) {
             $response = $ua->get("http://d0playscdntv-a.akamaihd.net/video/$video_id/processed/" . $quality[$i++] . ".mp4");
             $response_result = $response->is_success ? $quality[$i - 1] : 0;
-            print $quality[$i - 1] . "\n";
+            $log->INFO($quality[$i - 1]);
         }
 
         my $sth = $dbh->prepare("SELECT id FROM video WHERE vid=?");
@@ -81,19 +86,19 @@ sub paystv_get_video {
 
         if ($response->is_success && !$resulere->{id}) {
             open(my $fh, '>', "$self->{SAVE_DIRECTORY}$video_id.mp4");
-            print "Create file $video_id.mp4\n";
+            $log->INFO("Create file $video_id.mp4");
             $self->{VIDEOS}[$self->{last_video_num}++] = "$video_id.mp4";
             my $sth = $dbh->prepare("INSERT INTO video(vid,type, created) VALUES (?,?,?)");
             $sth->execute($video_id, 'playstv', 'NOW()');
 
-            print $fh $response->decoded_content;
+            $log->INFO("$fh $response->decoded_content");
 
             close $fh;
 
             if ($self->{MPG_FORMAT}) {
                 mp4_to_mpg("$self->{SAVE_DIRECTORY}$video_id");
             }
-            print " $self->{SAVE_DIRECTORY}$video_id.mpg " . "\n";
+            $log->INFO(" $self->{SAVE_DIRECTORY}$video_id.mpg ");
 
             $videos_string .= " $self->{SAVE_DIRECTORY}$video_id.mpg ";
 
@@ -120,7 +125,7 @@ sub paystv_get_video {
     $sth = $dbh->prepare("UPDATE youtube_video SET num=? WHERE vid=?");
     $sth->execute($video_num, 'NOW()');
 
-    print " NAME=$self->{SAVE_DIRECTORY}$attr->{YOTUBE_VIDEO_NAME} #$video_num.mpg" . "\n";
+    $log->INFO(" NAME=$self->{SAVE_DIRECTORY}$attr->{YOTUBE_VIDEO_NAME} #$video_num.mpg");
 
     return 1;
 }

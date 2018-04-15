@@ -1,5 +1,6 @@
-use lib '../lib';
+#!/usr/bin/perl
 
+use lib '../lib';
 use strict;
 use warnings;
 use Data::Dumper;
@@ -7,17 +8,37 @@ use LWP::UserAgent;
 use Net::PlaysTv;
 use POSIX;
 
-#************************************************
-# perl ./YouTubeUpload.pl
-#************************************************
+=head1 NAME
+  Simple script
+=head1 VERSION
+  0.01
+=head1 SYNOPSIS
+  ytbot.pl - script for.
+  Arguments:
+    --config,     path to a config file in 'key=value\n' style
+    --user
+    --password
+    --debug
+=head1 PURPOSES
+  - Deploy application
+  - Start application
+  - Check if application works and responses
+  - Undeploy application
+  - Check if application no longer available
+=cut
 
-my $directory = get_input();
-$directory = '/usr/SocialMedia/Video/';
+use v5.16;
+our $VERSION = 0.01;
 
-my $Playstv = PlaysTv->new('LeagueofLegends', $directory);
+my $directory = '/usr/SocialMedia/Video/';
+
+my $Playstv = Net::PlaysTv->new('LeagueofLegends', $directory);
 
 get_paystv_video();
 
+#************************************************
+# perl ./YouTubeUpload.pl
+#************************************************
 sub get_paystv_video {
     my ($attr) = @_;
 
