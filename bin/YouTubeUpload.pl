@@ -30,23 +30,24 @@ use POSIX;
 use v5.16;
 our $VERSION = 0.01;
 
-my $directory = '/usr/SocialMedia/Video/';
+my $directory = '/usr/YouTube-script/video/';
 
 my $Playstv = Net::PlaysTv->new('LeagueofLegends', $directory);
 
-get_paystv_video();
+get_video();
 
 #************************************************
 # perl ./YouTubeUpload.pl
 #************************************************
-sub get_paystv_video {
+sub get_video {
     my ($attr) = @_;
 
     $Playstv->playstv_get_video_list();
 
     my ($date) = strftime("%Y-%m-%d_%H:%M", localtime(time));
 
-    $Playstv->paystv_get_video({ VIDEO_NUM => $ARGV[0], YOTUBE_VIDEO_NAME => $ARGV[1] });
+    $Playstv->playstv_get_video({ VIDEO_NUM => 2, YOTUBE_VIDEO_NAME => 'test.mpg' });
+#    $Playstv->playstv_get_video({ VIDEO_NUM => 2, YOTUBE_VIDEO_NAME => $ARGV[1] });
 
     prepare_and_ulploed_youtube($Playstv->{VIDEOS}[0]);
 
