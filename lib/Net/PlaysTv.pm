@@ -66,7 +66,12 @@ sub playstv_get_video {
 
         my $download_res;
         ($self, $download_res) = _playstv_download_video($self, $video_id);
-        $videos_string .= $download_res ? " $download_res" : '';
+
+        if($videos_string) {
+            $videos_string .= $download_res ? "|$download_res" : '';
+        }else{
+            $videos_string .= $download_res ? " $download_res" : '';
+        }
     }
 
     my $sth = $dbh->prepare("SELECT num FROM youtube_video WHERE vid=?");
@@ -107,12 +112,11 @@ sub _playstv_download_video {
     my $directory;
     my $i = 0;
 
-    while (!($response_result || $i == $#quality)) {
+    while ( $response_result and $i >= $#quality ) {
         $response = $ua->get("http://d0playscdntv-a.akamaihd.net/video/$vid/processed/" . $quality[$i++] . ".mp4") or
             die $log->ERROR('Cant download video');
 
-        $response_result = $response->is_success ? 1 : 0;
-        $log->DEBUG($quality[$i]);
+        $response_result = $response->is_success ? 0 : 1;
     }
 
     my $sth = $dbh->prepare("SELECT id FROM video WHERE vid=?");

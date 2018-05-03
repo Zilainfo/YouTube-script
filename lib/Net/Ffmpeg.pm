@@ -25,9 +25,10 @@ sub concatination {
     my $self = shift;
     my ($videos, $outputname) = @_;
 
-    system("cat $videos | ffmpeg -f mpeg -i - -an -qscale 0 -vcodec mpeg4 $outputname") or
+    $log->DEBUG('ffmpeg -i concat:"$videos" -c copy $outputname');
+
+    system("ffmpeg -i concat:\"$videos\" -c copy $outputname") or
         die "Cant concat";
-    $log->DEBUG("cat$videos | ffmpeg -f mpeg -i - -an -qscale 0 -vcodec mpeg4 $outputname");
 
     return 1
 }
