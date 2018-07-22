@@ -16,6 +16,8 @@ sub mp4_to_mpg {
 
 
     system("ffmpeg -i $attr->{DIR}.mp4 -c:v mpeg2video -q:v 5 -c:a mp2 -f vob $attr->{DIR}.mpg");
+    system("rm $attr->{DIR}.mp4");
+
     $log->DEBUG("ffmpeg -i $attr->{DIR}.mp4 -c:v mpeg2video -q:v 5 -c:a mp2 -f vob $attr->{DIR}.mpg");
 
     return "$attr->{DIR}.mpg";
@@ -23,12 +25,16 @@ sub mp4_to_mpg {
 
 sub concatination {
     my $self = shift;
-    my ($videos, $outputname) = @_;
+    my ($videos, $dir, $outputname) = @_;
 
-    $log->DEBUG('ffmpeg -i concat:"$videos" -c copy $outputname');
+    $log->DEBUG("ffmpeg -i concat:\"$videos\" -c copy " . $dir . "timename.mpg");
+    $log->DEBUG("outputname = $outputname");
+    $log->DEBUG("cp $dir" . "timename.mpg " . "$dir$outputname");
+    $log->DEBUG("rm $dir" . "timename.mpg");
 
-    system("ffmpeg -i concat:\"$videos\" -c copy $outputname") or
-        die "Cant concat";
+    system("ffmpeg -i concat:\"$videos\" -c copy " . $dir . "timename.mpg");
+    system("cp $dir" . "timename.mpg " . "\'$dir$outputname\'");
+    system("rm $dir" . "timename.mpg");
 
     return 1
 }

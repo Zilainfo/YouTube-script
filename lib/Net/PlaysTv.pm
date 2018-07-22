@@ -21,12 +21,13 @@ sub new {
     my $class = shift;
     my $item = shift;
     my $directory = shift;
+    my $gameid = shift;
 
     my ($attr) = @_;
 
     my $self = {};
     bless($self, $class);
-
+    $self->{GAMEID} = $gameid;
     $self->{ITEM} = $item;
     $self->{DBI} = $dbh;
     $self->{SAVE_DIRECTORY} = $directory;
@@ -39,14 +40,14 @@ sub playstv_get_video_list {
     my $self = shift;
     my ($attr) = @_;
 
-    my $response = $ua->get("http://plays.tv/game/$self->{ITEM}?page=1") or
+    my $response = $ua->get("http://plays.tv/game/$self->{ITEM}?game_id=$self->{GAMEID}&sort=sort_popular&page=1") or
         die $log->ERROR('Cant get Playlist');
 
     if ($response->is_success) {
         my @video = ();
         push @video, $response->{_content} =~ m/video\b\/(\w+)\/processed\/\b.+type\b/g;
         $self->{video_list} = \@video;
-        $log->INFO('+ Get Playlist');
+        $log->INFO("+ Get Playlist http://plays.tv/game/$self->{ITEM}?game_id=$self->{GAMEID}&sort=sort_popular&page=1");
 
         return $self;
     }
@@ -70,7 +71,7 @@ sub playstv_get_video {
         if($videos_string) {
             $videos_string .= $download_res ? "|$download_res" : '';
         }else{
-            $videos_string .= $download_res ? " $download_res" : '';
+            $videos_string .= $download_res ? "$download_res" : '';
         }
     }
 
@@ -82,22 +83,24 @@ sub playstv_get_video {
 
     if ($query_result->{num}) {
         $video_num = ++$query_result->{num};
-
     }
     else {
         $video_num = 1;
         $sth = $dbh->prepare("INSERT INTO youtube_video(vid, num, created) VALUES (?,?,?)");
         $sth->execute($attr->{YOTUBE_VIDEO_NAME}, $video_num, 'NOW()');
+
     }
 
-    Net::Ffmpeg->concatination($videos_string, "$self->{SAVE_DIRECTORY}$attr->{YOTUBE_VIDEO_NAME} #$video_num.mpg");
+    my $video_name = "$attr->{YOTUBE_VIDEO_NAME} $video_num";
+
+    Net::Ffmpeg->concatination($videos_string, $self->{SAVE_DIRECTORY}, $video_name.'.mpg');
 
     $sth = $dbh->prepare("UPDATE youtube_video SET num=? WHERE vid=?");
-    $sth->execute($video_num, 'NOW()');
+    $sth->execute($video_num, $attr->{YOTUBE_VIDEO_NAME});
 
-    $log->INFO(" NAME=$self->{SAVE_DIRECTORY}$attr->{YOTUBE_VIDEO_NAME} #$video_num.mpg");
+    $log->INFO(" NAME=$self->{SAVE_DIRECTORY}$video_name");
 
-    return 1;
+    return $video_name;
 }
 
 sub _playstv_download_video {
@@ -105,18 +108,19 @@ sub _playstv_download_video {
     my ($vid) = @_;
 
     my @quality = ('1080', '720');
-    my $response_result = '';
+    my $response_result = 1;
     my $response = '';
 
     #Search link with best quality video
     my $directory;
     my $i = 0;
 
-    while ( $response_result and $i >= $#quality ) {
-        $response = $ua->get("http://d0playscdntv-a.akamaihd.net/video/$vid/processed/" . $quality[$i++] . ".mp4") or
+    while ( $response_result && $i <= $#quality ) {
+        $response = $ua->get("http://d0playscdntv-a.akamaihd.net/video/$vid/processed/" . $quality[$i] . ".mp4") or
             die $log->ERROR('Cant download video');
 
         $response_result = $response->is_success ? 0 : 1;
+        $i = $response->is_success ? $i : ++$i;
     }
 
     my $sth = $dbh->prepare("SELECT id FROM video WHERE vid=?");
